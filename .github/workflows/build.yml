@@ -1,0 +1,29 @@
+name: Compilar Jogo PS3
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ps3dev/ps3dev:latest
+
+    steps:
+      - name: Baixar arquivos do projeto
+        uses: actions/checkout@v4
+
+      - name: Compilar jogo para PS3 (.pkg)
+        run: |
+          export PS3DEV=/usr/local/ps3dev
+          export PSL1GHT=$PS3DEV
+          export PATH=$PATH:$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin
+          make pkg
+
+      - name: Disponibilizar arquivo .pkg para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: SlitherPS3-Instalador
+          path: "*.pkg"
