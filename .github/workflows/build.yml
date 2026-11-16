@@ -14,15 +14,11 @@ jobs:
 
       - name: Compilar jogo para PS3 (.pkg)
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/project \
-            -w /project \
-            ps3dev/ps3dev:latest \
-            bash -c "export PS3DEV=/usr/local/ps3dev && export PSL1GHT=\$PS3DEV && export PATH=\$PATH:\$PS3DEV/bin:\$PS3DEV/ppu/bin:\$PS3DEV/spu/bin:\$PS3DEV/portlibs/ppu/bin && make pkg"
+          docker run --rm -v "$GITHUB_WORKSPACE:/project" -w /project ghcr.io/ps3dev/ps3toolchain:latest make pkg
 
       - name: Disponibilizar arquivo .pkg para download
         uses: actions/upload-artifact@v4
         with:
           name: slither-ps3-pkg
-          path: "*.pkg"
+          path: "**/*.pkg"
           if-no-files-found: warn
