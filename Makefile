@@ -1,86 +1,39 @@
 ifeq ($(strip $(PSL1GHT)),)
-$(error "Please set PSL1GHT in your environment. export PSL1GHT=<path>")
+$(error "Defina a variavel PSL1GHT")
 endif
-
 include $(PSL1GHT)/ppu_rules
 
-export TOPDIR := $(CURDIR)
+.DEFAULT_GOAL := all
 
 TARGET    := slips3
-BUILD     := build
-SOURCES   := source
-DATA      := data
-INCLUDES  := include
-
 TITLE     := slips3
 APPID     := SLIP00001
 CONTENTID := UP0001-$(APPID)_00-0000000000000000
+PORTLIBS  := $(PS3DEV)/portlibs/ppu
 
-export INCLUDE := $(foreach dir,$(INCLUDES),-I$(TOPDIR)/$(dir)) \
-                  $(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-                  -I$(TOPDIR)/$(BUILD) \
-                  -I$(PSL1GHT)/ppu/include \
-                  -I$(PS3DEV)/portlibs/ppu/include \
-                  -I$(PS3DEV)/portlibs/ppu/include/SDL
+MACHDEP  := -mhard-float -fmodulo-sched -ffunction-sections -fdata-sections
+CXXFLAGS := -O2 -Wall -mcpu=cell $(MACHDEP) -Iinclude -I$(PSL1GHT)/ppu/include -I$(PORTLIBS)/include -I$(PORTLIBS)/include/SDL
+LDFLAGS  := $(MACHDEP) -L$(PSL1GHT)/ppu/lib -L$(PORTLIBS)/lib
+LIBS     := -lSDL -lrsx -lgcm_sys -lio -lsysutil -lrt -llv2 -lm
 
-export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib) \
-                   -L$(PSL1GHT)/ppu/lib \
-                   -L$(PS3DEV)/portlibs/ppu/lib
+OBJS     := source/main.o source/game.o source/render.o
 
-CFLAGS    := -O2 -Wall -mcpu=cell $(MACHDEP) $(INCLUDE)
-CXXFLAGS  := $(CFLAGS)
-LDFLAGS   := $(MACHDEP) -Wl,-Map,$(notdir $@).map
+all: $(TARGET).pkg
 
-LIBS      := -lSDL -lrsx -lgcm_sys -lio -lsysutil -lrt -llv2 -lm
+source/%.o: source/%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-#---------------------------------------------------------------------------------
-# Não altere abaixo desta linha
-#---------------------------------------------------------------------------------
-ifneq ($(BUILD),$(notdir $(CURDIR)))
+$(TARGET).elf: $(OBJS)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 
-export OUTPUT   := $(TOPDIR)/$(TARGET)
-export VPATH    := $(foreach dir,$(SOURCES),$(TOPDIR)/$(dir)) \
-                   $(foreach dir,$(DATA),$(TOPDIR)/$(dir))
-export DEPSDIR  := $(TOPDIR)/$(BUILD)
-
-CFILES          := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-CPPFILES        := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
-sFILES          := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
-SFILES          := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.S)))
-BINFILES        := $(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
-
-export LD       := $(CXX)
-export OFILES   := $(addsuffix .o,$(BINFILES)) \
-                   $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) \
-                   $(sFILES:.s=.o) $(SFILES:.S=.o)
-
-.PHONY: $(BUILD) clean pkg
-
-all: $(BUILD) pkg
-
-$(BUILD):
-	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(TOPDIR)/Makefile
-
-pkg: $(BUILD)
-	@rm -rf pkg
-	@mkdir -p pkg/USRDIR
-	@if [ -f ICON0.PNG ]; then cp ICON0.PNG pkg/ICON0.PNG; fi
-	@$(PS3DEV)/bin/sprxlinker $(TARGET).elf
-	@$(PS3DEV)/bin/make_self_npdrm $(TARGET).elf pkg/USRDIR/EBOOT.BIN $(CONTENTID)
-	@$(PS3DEV)/bin/sfo.py --title "$(TITLE)" --appid "$(APPID)" pkg/PARAM.SFO
-	@$(PS3DEV)/bin/pkg.py --contentid $(CONTENTID) pkg/ $(TARGET).pkg
+$(TARGET).pkg: $(TARGET).elf
+	rm -rf pkg
+	mkdir -p pkg/USRDIR
+	if [ -f ICON0.PNG ]; then cp ICON0.PNG pkg/ICON0.PNG; fi
+	$(PS3DEV)/bin/sprxlinker $(TARGET).elf
+	$(PS3DEV)/bin/make_self_npdrm $(TARGET).elf pkg/USRDIR/EBOOT.BIN $(CONTENTID)
+	$(PS3DEV)/bin/sfo.py --title "$(TITLE)" --appid "$(APPID)" pkg/PARAM.SFO
+	$(PS3DEV)/bin/pkg.py --contentid $(CONTENTID) pkg/ $@
 
 clean:
-	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).elf $(TARGET).self $(TARGET).pkg pkg
-
-else
-
-DEPENDS := $(OFILES:.o=.d)
-
-$(OUTPUT).elf: $(OFILES)
-
--include $(DEPENDS)
-
-endif
+	rm -rf pkg source/*.o *.elf *.self *.pkg
