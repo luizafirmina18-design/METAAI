@@ -1,26 +1,38 @@
-# Slither PS3 - Makefile oficial PSL1GHT
-TITLE		:= Slither PS3
-APPID		:= SLITHER001
-CONTENTID	:= UP0001-SLITHER001_00-0000000000000000
-
-TARGET		:= slither_ps3
-BUILD		:= build
-SOURCES		:= source
-INCLUDES	:= include
-
-# Arquivos C++
-CXXFILES	:= $(foreach dir,$(SOURCES),$(wildcard $(dir)/*.cpp))
-
-# Flags
-CFLAGS		:= -O2 -Wall -mcpu=cell
-CXXFLAGS	:= $(CFLAGS) -std=gnu++11
-INCLUDE		:= $(foreach dir,$(INCLUDES),-I$(dir)) \
-		   -I$(PSL1GHT)/ppu/include \
-		   -I$(PSL1GHT)/portlibs/ppu/include \
-		   -I$(PSL1GHT)/portlibs/ppu/include/SDL
-
-LIBDIRS		:= -L$(PSL1GHT)/ppu/lib -L$(PSL1GHT)/portlibs/ppu/lib
-LIBS		:= -lSDL -lio -lsysutil -lsysmodule -lGCM_sys -lreality -lm -lstdc++ -lsysfs -lnet
-
-# Isso aqui que cria o .pkg sozinho, nao precisa inventar regra
+ifeq ($(strip $(PSL1GHT)),)
+$(error "Defina a variavel PSL1GHT")
+endif
 include $(PSL1GHT)/ppu_rules
+
+.DEFAULT_GOAL := all
+
+TARGET    := slips3
+TITLE     := slips3
+APPID     := SLIP00001
+CONTENTID := UP0001-$(APPID)_00-0000000000000000
+SFOXML    := sfo.xml
+PORTLIBS  := $(PS3DEV)/portlibs/ppu
+
+MACHDEP := -mhard-float -fmodulo-sched -ffunction-sections -fdata-sections
+CFLAGS  := -O2 -Wall -mcpu=cell $(MACHDEP) -I$(PSL1GHT)/ppu/include -I$(PORTLIBS)/include
+LDFLAGS := $(MACHDEP) -L$(PSL1GHT)/ppu/lib -L$(PORTLIBS)/lib
+LIBS    := -lrsx -lgcm_sys -lio -lsysutil -lrt -llv2 -lm
+
+all: $(TARGET).pkg
+
+main.o: main.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(TARGET).elf: main.o
+	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+
+$(TARGET).pkg: $(TARGET).elf ICON0.PNG $(SFOXML)
+	rm -rf pkg
+	mkdir -p pkg/USRDIR
+	cp ICON0.PNG pkg/ICON0.PNG
+	$(PS3DEV)/bin/sprxlinker $(TARGET).elf
+	$(PS3DEV)/bin/make_self_npdrm $(TARGET).elf pkg/USRDIR/EBOOT.BIN $(CONTENTID)
+	$(PS3DEV)/bin/sfo.py --title "$(TITLE)" --appid "$(APPID)" -f $(SFOXML) pkg/PARAM.SFO
+	$(PS3DEV)/bin/pkg.py --contentid $(CONTENTID) pkg/ $@
+
+clean:
+	rm -rf pkg *.o *.elf *.self *.pkg
