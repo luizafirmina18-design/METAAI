@@ -29,7 +29,7 @@ bool Game::init() {
     screen = SDL_SetVideoMode(SCREEN_W, SCREEN_H, 32, SDL_HWSURFACE | SDL_DOUBLEBUF);
     if (!screen) return false;
     SDL_ShowCursor(SDL_DISABLE);
-    padInit(7);
+    ioPadInit(7);
     srand(12345);
     initWorld();
     running = true;
@@ -37,7 +37,7 @@ bool Game::init() {
 }
 
 void Game::shutdown() {
-    padEnd();
+    ioPadEnd();
     SDL_Quit();
     screen = NULL;
 }
@@ -163,8 +163,8 @@ void Game::spawnParticle(float x, float y, Uint8 r, Uint8 g, Uint8 b) {
 
 // ===== LOOP PRINCIPAL =====
 void Game::run() {
-    padInfo padinfo;
-    padData paddata;
+    ioPadInfo padinfo;
+    ioPadData paddata;
     Uint32 lastTime = SDL_GetTicks();
     bool startPressedBefore = false;
 
@@ -181,9 +181,9 @@ void Game::run() {
         float analogX = 0, analogY = 0;
         bool boostBtn = false;
         bool startBtn = false;
-        padGetInfo(&padinfo);
+        ioPadGetInfo(&padinfo);
         if (padinfo.status[0]) {
-            padRead(0, &paddata);
+            ioPadGetData(0, &paddata);
             int ax = paddata.ANA_L_H - 128;
             int ay = paddata.ANA_L_V - 128;
             // Zona morta
