@@ -2,15 +2,14 @@ name: Compilar Jogo PS3
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: hldtux/ps3dev:latest
-
+      image: ps3dev/ps3dev:latest
     steps:
       - name: Baixar arquivos do projeto
         uses: actions/checkout@v4
@@ -25,5 +24,6 @@ jobs:
       - name: Disponibilizar arquivo .pkg para download
         uses: actions/upload-artifact@v4
         with:
-          name: SlitherPS3-Instalador
+          name: slither-ps3-pkg
           path: "*.pkg"
+          if-no-files-found: warn
