@@ -30,7 +30,7 @@ $(TARGET).elf: $(OBJS)
 $(TARGET).pkg: $(TARGET).elf $(SFOXML)
 	rm -rf pkg
 	mkdir -p pkg/USRDIR
-	if [ -f ICON0.PNG ]; then cp ICON0.PNG pkg/ICON0.PNG; fi
+	python3 -c 'import zlib,struct,math;W,H=320,176;buf=bytearray(W*H*3);[(buf.__setitem__(slice((y*W+x)*3,(y*W+x)*3+3),bytes((15,20,30) if (x%20==0 or y%20==0) else (10,14,22)))) for y in range(H) for x in range(W)];circ=lambda cx,cy,r,c:[(buf.__setitem__(slice((y*W+x)*3,(y*W+x)*3+3),bytes(c))) for y in range(max(0,int(cy-r)),min(H,int(cy+r+1))) for x in range(max(0,int(cx-r)),min(W,int(cx+r+1))) if (x-cx)**2+(y-cy)**2<=r*r];[circ(40+i*6,88+math.sin(i*0.25)*35,14,(0,180,70) if i%2 else (0,230,90)) for i in range(34)];circ(244,88+math.sin(34*0.25)*35,17,(0,240,100));circ(250,82+math.sin(34*0.25)*35,5,(255,255,255));circ(250,94+math.sin(34*0.25)*35,5,(255,255,255));circ(252,82+math.sin(34*0.25)*35,2,(0,0,0));circ(252,94+math.sin(34*0.25)*35,2,(0,0,0));circ(285,60,7,(255,60,80));circ(275,125,8,(255,210,0));circ(130,35,6,(0,190,255));raw=b"".join(b"\x00"+bytes(buf[y*W*3:(y+1)*W*3]) for y in range(H));chk=lambda t,d:struct.pack("!I",len(d))+t+d+struct.pack("!I",zlib.crc32(t+d)&0xffffffff);open("pkg/ICON0.PNG","wb").write(b"\x89PNG\r\n\x1a\n"+chk(b"IHDR",struct.pack("!IIBBBBB",W,H,8,2,0,0,0))+chk(b"IDAT",zlib.compress(raw))+chk(b"IEND",b""))'
 	$(PS3DEV)/bin/sprxlinker $(TARGET).elf
 	$(PS3DEV)/bin/make_self_npdrm $(TARGET).elf pkg/USRDIR/EBOOT.BIN $(CONTENTID)
 	$(PS3DEV)/bin/sfo.py --title "$(TITLE)" --appid "$(APPID)" -f $(SFOXML) pkg/PARAM.SFO
