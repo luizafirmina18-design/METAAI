@@ -9,30 +9,32 @@ TARGET    := slips3
 TITLE     := slips3
 APPID     := SLIP00001
 CONTENTID := UP0001-$(APPID)_00-0000000000000000
-SFOXML    := sfo.xml
 PORTLIBS  := $(PS3DEV)/portlibs/ppu
 
 MACHDEP := -mhard-float -fmodulo-sched -ffunction-sections -fdata-sections
-CFLAGS  := -O2 -Wall -mcpu=cell $(MACHDEP) -I$(PSL1GHT)/ppu/include -I$(PORTLIBS)/include
-LDFLAGS := $(MACHDEP) -L$(PSL1GHT)/ppu/lib -L$(PORTLIBS)/lib
-LIBS    := -lrsx -lgcm_sys -lio -lsysutil -lrt -llv2 -lm
+CXXFLAGS := -O2 -Wall -mcpu=cell $(MACHDEP) -Iinclude -I$(PSL1GHT)/ppu/include -I$(PORTLIBS)/include -I$(PORTLIBS)/include/SDL
+LDFLAGS  := $(MACHDEP) -L$(PSL1GHT)/ppu/lib -L$(PORTLIBS)/lib
+LIBS     := -lSDL -lrsx -lgcm_sys -lio -lsysutil -lrt -llv2 -lm
+
+SOURCES := $(wildcard source/*.cpp)
+OBJECTS := $(SOURCES:.cpp=.o)
 
 all: $(TARGET).pkg
 
-main.o: main.c
-	$(CC) $(CFLAGS) -c $< -o $@
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(TARGET).elf: main.o
-	$(CC) $(LDFLAGS) -o $@ $< $(LIBS)
+$(TARGET).elf: $(OBJECTS)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJECTS) $(LIBS)
 
-$(TARGET).pkg: $(TARGET).elf ICON0.PNG $(SFOXML)
+$(TARGET).pkg: $(TARGET).elf
 	rm -rf pkg
 	mkdir -p pkg/USRDIR
-	cp ICON0.PNG pkg/ICON0.PNG
+	if [ -f ICON0.PNG ]; then cp ICON0.PNG pkg/ICON0.PNG; fi
 	$(PS3DEV)/bin/sprxlinker $(TARGET).elf
 	$(PS3DEV)/bin/make_self_npdrm $(TARGET).elf pkg/USRDIR/EBOOT.BIN $(CONTENTID)
-	$(PS3DEV)/bin/sfo.py --title "$(TITLE)" --appid "$(APPID)" -f $(SFOXML) pkg/PARAM.SFO
+	$(PS3DEV)/bin/sfo.py --title "$(TITLE)" --appid "$(APPID)" pkg/PARAM.SFO
 	$(PS3DEV)/bin/pkg.py --contentid $(CONTENTID) pkg/ $@
 
 clean:
-	rm -rf pkg *.o *.elf *.self *.pkg
+	rm -rf pkg $(OBJECTS) *.elf *.self *.pkg
