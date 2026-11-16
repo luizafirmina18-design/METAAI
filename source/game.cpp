@@ -163,8 +163,8 @@ void Game::spawnParticle(float x, float y, Uint8 r, Uint8 g, Uint8 b) {
 
 // ===== LOOP PRINCIPAL =====
 void Game::run() {
-    ioPadInfo padinfo;
-    ioPadData paddata;
+    padInfo padinfo;
+    padData paddata;
     Uint32 lastTime = SDL_GetTicks();
     bool startPressedBefore = false;
 
