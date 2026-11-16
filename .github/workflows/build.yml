@@ -7,14 +7,40 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
     steps:
       - name: Baixar arquivos do projeto
         uses: actions/checkout@v4
 
+      - name: Instalar dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git wget python3 pkg-config autoconf automake libtool texinfo libgmp-dev libmpfr-dev libmpc-dev libssl-dev zlib1g-dev libncurses-dev
+
+      - name: Baixar e compilar toolchain PS3
+        run: |
+          export PS3DEV=/usr/local/ps3dev
+          export PSL1GHT=$PS3DEV
+          export PATH=$PATH:$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin
+          echo "PS3DEV=$PS3DEV" >> $GITHUB_ENV
+          echo "PSL1GHT=$PSL1GHT" >> $GITHUB_ENV
+          echo "PATH=$PATH:$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin" >> $GITHUB_ENV
+          sudo mkdir -p $PS3DEV
+          sudo chown -R $USER $PS3DEV
+          cd /tmp
+          git clone https://github.com/ps3dev/ps3toolchain.git
+          cd ps3toolchain
+          ./toolchain.sh
+
       - name: Compilar jogo para PS3 (.pkg)
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/project" -w /project ghcr.io/ps3dev/ps3toolchain:latest make pkg
+          export PS3DEV=/usr/local/ps3dev
+          export PSL1GHT=$PS3DEV
+          export PATH=$PATH:$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin:$PS3DEV/portlibs/ppu/bin
+          make pkg
+          ls -R
+          find . -name "*.pkg"
 
       - name: Disponibilizar arquivo .pkg para download
         uses: actions/upload-artifact@v4
