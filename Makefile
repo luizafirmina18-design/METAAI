@@ -4,6 +4,8 @@ endif
 
 include $(PSL1GHT)/ppu_rules
 
+export TOPDIR := $(CURDIR)
+
 TARGET    := slips3
 BUILD     := build
 SOURCES   := source
@@ -14,6 +16,17 @@ TITLE     := slips3
 APPID     := SLIP00001
 CONTENTID := UP0001-$(APPID)_00-0000000000000000
 
+export INCLUDE := $(foreach dir,$(INCLUDES),-I$(TOPDIR)/$(dir)) \
+                  $(foreach dir,$(LIBDIRS),-I$(dir)/include) \
+                  -I$(TOPDIR)/$(BUILD) \
+                  -I$(PSL1GHT)/ppu/include \
+                  -I$(PS3DEV)/portlibs/ppu/include \
+                  -I$(PS3DEV)/portlibs/ppu/include/SDL
+
+export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib) \
+                   -L$(PSL1GHT)/ppu/lib \
+                   -L$(PS3DEV)/portlibs/ppu/lib
+
 CFLAGS    := -O2 -Wall -mcpu=cell $(MACHDEP) $(INCLUDE)
 CXXFLAGS  := $(CFLAGS)
 LDFLAGS   := $(MACHDEP) -Wl,-Map,$(notdir $@).map
@@ -21,14 +34,14 @@ LDFLAGS   := $(MACHDEP) -Wl,-Map,$(notdir $@).map
 LIBS      := -lSDL -lrsx -lgcm_sys -lio -lsysutil -lrt -llv2 -lm
 
 #---------------------------------------------------------------------------------
-# Não altere abaixo desta linha a menos que saiba o que está fazendo
+# Não altere abaixo desta linha
 #---------------------------------------------------------------------------------
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 
-export OUTPUT   := $(CURDIR)/$(TARGET)
-export VPATH    := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
-                   $(foreach dir,$(DATA),$(CURDIR)/$(dir))
-export DEPSDIR  := $(CURDIR)/$(BUILD)
+export OUTPUT   := $(TOPDIR)/$(TARGET)
+export VPATH    := $(foreach dir,$(SOURCES),$(TOPDIR)/$(dir)) \
+                   $(foreach dir,$(DATA),$(TOPDIR)/$(dir))
+export DEPSDIR  := $(TOPDIR)/$(BUILD)
 
 CFILES          := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES        := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
@@ -41,24 +54,13 @@ export OFILES   := $(addsuffix .o,$(BINFILES)) \
                    $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) \
                    $(sFILES:.s=.o) $(SFILES:.S=.o)
 
-export INCLUDE  := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-                   $(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-                   -I$(CURDIR)/$(BUILD) \
-                   -I$(PSL1GHT)/ppu/include \
-                   -I$(PS3DEV)/portlibs/ppu/include \
-                   -I$(PS3DEV)/portlibs/ppu/include/SDL
-
-export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib) \
-                   -L$(PSL1GHT)/ppu/lib \
-                   -L$(PS3DEV)/portlibs/ppu/lib
-
 .PHONY: $(BUILD) clean pkg
 
 all: $(BUILD) pkg
 
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(TOPDIR)/Makefile
 
 pkg: $(BUILD)
 	@rm -rf pkg
