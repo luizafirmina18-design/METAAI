@@ -1,50 +1,41 @@
-name: Compilar Jogo PS3
+name: Compilar slips3
 
 on:
   push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
     steps:
-      - name: Baixar arquivos do projeto
-        uses: actions/checkout@v4
-
-      - name: Instalar dependencias
+      - name: Dependencias
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential git wget curl python3 pkg-config autoconf automake libtool libtool-bin texinfo libgmp-dev libmpfr-dev libmpc-dev libssl-dev zlib1g-dev libncurses-dev libelf-dev libreadline-dev flex bison m4 gettext libglib2.0-dev
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y curl make git python2 python3 libgmp10 libelf1 zlib1g libssl1.1 bzip2 xz-utils
+          ln -sf /usr/bin/python2 /usr/bin/python
 
-      - name: Baixar e compilar toolchain PS3
-        run: |
-          export PS3DEV=/usr/local/ps3dev
-          export PSL1GHT=$PS3DEV
-          export PATH=$PATH:$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin
-          echo "PS3DEV=$PS3DEV" >> $GITHUB_ENV
-          echo "PSL1GHT=$PSL1GHT" >> $GITHUB_ENV
-          echo "PATH=$PATH:$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin" >> $GITHUB_ENV
-          sudo mkdir -p $PS3DEV
-          sudo chown -R $USER $PS3DEV
-          cd /tmp
-          git clone https://github.com/ps3dev/ps3toolchain.git
-          cd ps3toolchain
-          ./toolchain.sh
+      - uses: actions/checkout@v4
 
-      - name: Compilar jogo para PS3 (.pkg)
+      - name: Baixar toolchain do PS3
         run: |
-          export PS3DEV=/usr/local/ps3dev
-          export PSL1GHT=$PS3DEV
-          export PATH=$PATH:$PS3DEV/bin:$PS3DEV/ppu/bin:$PS3DEV/spu/bin:$PS3DEV/portlibs/ppu/bin
+          curl -sL https://github.com/bucanero/ps3toolchain/releases/download/ubuntu-latest-fad3b5fb/ps3dev-ubuntu-latest-2020-08-31.tar.gz | tar xz -C /opt
+          ls /opt/ps3dev
+          echo "PS3DEV=/opt/ps3dev" >> $GITHUB_ENV
+          echo "PSL1GHT=/opt/ps3dev/psl1ght" >> $GITHUB_ENV
+          echo "/opt/ps3dev/bin" >> $GITHUB_PATH
+          echo "/opt/ps3dev/ppu/bin" >> $GITHUB_PATH
+          echo "/opt/ps3dev/psl1ght/bin" >> $GITHUB_PATH
+
+      - name: Compilar
+        run: |
+          make clean || true
           make pkg
-          ls -R
-          find . -name "*.pkg"
+          ls -lh *.pkg
+          mv *.pkg slips3.pkg
+          ls -lh slips3.pkg
 
-      - name: Disponibilizar arquivo .pkg para download
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: slither-ps3-pkg
-          path: "**/*.pkg"
-          if-no-files-found: warn
+          name: slips3-pkg
+          path: slips3.pkg
